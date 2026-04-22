@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Match Companion</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏏</text></svg>">
+</head>
+<body>
+    <div class="container">
+        <header style="position: relative;">
+            <button id="theme-toggle" class="theme-btn" aria-label="Toggle Theme">
+                <svg id="moon-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-moon" style="display: none;"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                <svg id="sun-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+            </button>
+            <h1>AI Match Companion</h1>
+            <p>Real-time cricket storytelling engine</p>
+        </header>
+
+        <section class="scorecard">
+            <div class="teams" id="display-teams">Team 1 vs Team 2</div>
+            <div class="score-details">
+                <div>
+                    <span>Score</span>
+                    <strong id="display-runs">0/0</strong>
+                </div>
+                <div>
+                    <span>Overs</span>
+                    <strong id="display-overs">0.0</strong>
+                </div>
+            </div>
+            <div class="status" id="display-status">Match Status</div>
+            
+            <!-- Crowd Pulse: Emotion Heatmap -->
+            <div class="emotion-heatmap" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Crowd Pulse (AI Insight)</span>
+                    <span id="emotion-status" style="font-size: 0.75rem; color: var(--accent); font-weight: 500;">Analyzing stadium vibes...</span>
+                </div>
+                <div class="pulse-bars" style="display: flex; gap: 0.3rem; height: 30px; align-items: flex-end;">
+                    <div class="pulse-bar" style="flex: 1; background: #ff4757; height: 20%; border-radius: 2px; transition: height 0.5s ease;" title="Tension"></div>
+                    <div class="pulse-bar" style="flex: 1; background: #ffa502; height: 40%; border-radius: 2px; transition: height 0.5s ease;" title="Excitement"></div>
+                    <div class="pulse-bar" style="flex: 1; background: #2ed573; height: 60%; border-radius: 2px; transition: height 0.5s ease;" title="Joy"></div>
+                    <div class="pulse-bar" style="flex: 1; background: #1e90ff; height: 30%; border-radius: 2px; transition: height 0.5s ease;" title="Disbelief"></div>
+                    <div class="pulse-bar" style="flex: 1; background: #ff4757; height: 80%; border-radius: 2px; transition: height 0.5s ease;" title="Pressure"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-top: 0.4rem; font-size: 0.65rem; color: var(--text-secondary);">
+                    <span>TENSION</span>
+                    <span>JOY</span>
+                    <span>PRESSURE</span>
+                </div>
+            </div>
+        </section>
+
+        <div class="controls">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <span style="color: var(--text-secondary); font-size: 0.9rem;">Mode</span>
+                <div class="toggle-container">
+                    <span id="auto-label" style="color: #fff; font-size: 0.85rem; font-weight: 500;">Auto</span>
+                    <div class="toggle-switch" id="mode-toggle">
+                        <div class="toggle-knob"></div>
+                    </div>
+                    <span id="manual-label" style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500;">Manual</span>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <span style="color: var(--text-secondary); font-size: 0.9rem;">Lang</span>
+                <div class="toggle-container">
+                    <span id="lang-en-label" style="color: #fff; font-size: 0.85rem; font-weight: 500;">EN</span>
+                    <div class="toggle-switch" id="lang-toggle" style="width: 40px;">
+                        <div class="toggle-knob"></div>
+                    </div>
+                    <span id="lang-hi-label" style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500;">HI</span>
+                </div>
+            </div>
+            <label id="refresh-control" style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; color: var(--text-secondary); font-size: 0.8rem;">
+                <input type="checkbox" id="auto-refresh-toggle" checked style="accent-color: var(--accent);">
+                Auto-Refresh (30s)
+            </label>
+        </div>
+
+        <div class="manual-inputs" id="manual-inputs" style="display: none;">
+            <div class="input-group full-width">
+                <label>Teams</label>
+                <input type="text" id="input-teams" placeholder="e.g. CSK vs MI">
+            </div>
+            <div class="input-group">
+                <label>Score (Runs/Wickets)</label>
+                <input type="text" id="input-runs" placeholder="e.g. 210/6">
+            </div>
+            <div class="input-group">
+                <label>Overs</label>
+                <input type="text" id="input-overs" placeholder="e.g. 19.5">
+            </div>
+            <div class="input-group full-width">
+                <label>Match Status</label>
+                <input type="text" id="input-status" placeholder="e.g. 6 runs needed off 1 ball">
+            </div>
+        </div>
+
+        <div class="actions">
+            <button class="btn-primary" id="btn-commentary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mic"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                Commentary
+            </button>
+            <button class="btn-secondary" id="btn-story">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-smile"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg>
+                Story / Meme
+            </button>
+        </div>
+
+        <div class="output-section">
+            <div class="output-label">AI Output</div>
+            <div class="output-content" id="output-content">
+                Ready to generate match insights, live commentary, and entertaining stories! Select a mode and hit a button above.
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

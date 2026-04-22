@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini + Giphy Integration</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .output { margin-top: 20px; padding: 15px; border: 1px solid #ccc; background: #f9f9f9; border-radius: 8px;}
+        .error { color: red; font-weight: bold; }
+        button { padding: 10px 15px; cursor: pointer; margin-right: 10px; }
+        #gif-container { margin-top: 15px; }
+    </style>
+</head>
+<body>
+    <h1>Cricket Companion Assistant</h1>
+    
+    <!-- Existing UI Structure -->
+    <button id="btn-commentary">Get Commentary</button>
+    <button id="btn-meme">Get Story / Meme</button>
+
+    <div class="output" id="output-box">
+        <p id="text-output">Waiting for action...</p>
+        <div id="gif-container"></div>
+    </div>
+
+    <script>
+        // ==========================================
+        // GIPHY API LOGIC
+        // ==========================================
+        const GIPHY_API_KEY = "Yx8woyUJelz6xgdd7tmLoUVE2xH4Nv5B";
+
+        async function fetchGiphyGIF(emotion) {
+            console.log("Triggering Giphy fetch for emotion:", emotion);
+            const gifContainer = document.getElementById('gif-container');
+            
+            if (!GIPHY_API_KEY || GIPHY_API_KEY === "PASTE_GIPHY_KEY_HERE") {
+                gifContainer.innerHTML = `<p style="color: orange;">GIPHY API Key missing! Paste key above to see GIF for: <b>${emotion}</b></p>`;
+                return;
+            }
+
+            gifContainer.innerHTML = `<i>Loading GIF for <b>${emotion}</b>...</i>`;
+            
+            try {
+                // Fetch random dynamic GIF based on the derived emotion string
+                const url = `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_API_KEY}&q=${emotion}&limit=1`;
+                const response = await fetch(url);
+                const json = await response.json();
+
+                if (json.data && json.data.length > 0) {
+                    const gifUrl = json.data[0].images.fixed_height.url;
+                    gifContainer.innerHTML = `<img src="${gifUrl}" alt="${emotion} animation">`;
+                } else {
+                    gifContainer.innerHTML = `<p style="color: gray;">No GIF found for this emotion.</p>`;
+                }
+            } catch (error) {
+                console.error("Giphy Request Error:", error);
+                gifContainer.innerHTML = `<p style="color: red;">Failed to fetch GIF from Giphy.</p>`;
+            }
+        }
+        
+
+        // ==========================================
+        // NEW GEMINI INTEGRATION 
+        // ==========================================
+
+        // 3. API configuration
+        const API_KEY = "AIzaSyBSjIhjRAW8j_sJlKxQxUVo_nHfpwx68qQ";
+
+        // 1 & 2. Define Gemini Call using fetch standard
+        async function callGemini(prompt) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${API_KEY}`;
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }]
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP Error Status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                return data.candidates[0].content.parts[0].text;
+            } catch (error) {
+                console.error("Gemini API Error:", error);
+                throw error; // Propagate for UI handling
+            }
+        }
+
+        // 4. Generate dynamic prompts
+        function generatePrompt(data, mode) {
+            let context = `Match Situation: ${data.team1} vs ${data.team2}, ${data.runs}/${data.wickets} in ${data.overs} overs.`;
+
+            if (mode === 'commentary') {
+                return `You are an expert cricket commentator.
+${context}
+
+Write a thrilling 2-sentence live commentary for this situation.
+Choose ONE emotion representing the mood: celebration, funny, shock, sad, angry.
+
+Output format (STRICT):
+Caption: <your commentary>
+Emotion: <one word>`;
+            } else if (mode === 'meme') {
+                return `You are a viral cricket meme creator for WhatsApp and Instagram.
+
+Match Situation:
+${data.team1} vs ${data.team2}
+Score: ${data.runs}/${data.wickets} in ${data.overs} overs
+Status: ${data.status || 'Ongoing'}
+
+Task:
+Generate ONLY a short meme caption with emojis.
+
+Rules:
+- NO analysis
+- NO steps
+- NO explanation
+- ONLY final caption
+
+Caption rules:
+- Exactly 1 line
+- Max 8-12 words
+- Use emojis (😂🔥😭🏏)
+- Hinglish or casual tone preferred
+- Must feel like a WhatsApp forward or reel caption
+- Make it funny and relatable
+
+STRICT OUTPUT:
+<only the caption line>
+
+Do not add labels like "Caption:"
+Do not add anything else.`;
+            }
+        }
+
+        // Mock external data
+        const matchData = {
+            team1: "CSK",
+            team2: "MI",
+            runs: "185",
+            wickets: "4",
+            overs: "18.2"
+        };
+
+        const textOutput = document.getElementById('text-output');
+
+        // 5 & 6 & 8. Main execution logic
+        async function handleAction(mode) {
+            // Loading state
+            textOutput.innerHTML = "<i>Generating AI output...</i>";
+            document.getElementById('gif-container').innerHTML = ""; 
+            
+            try {
+                // Generate prompt
+                const prompt = generatePrompt(matchData, mode);
+                
+                // Call Gemini API
+                const rawResponse = await callGemini(prompt);
+                
+                // Parse the structured block safely
+                let caption = rawResponse;
+                let emotion = "funny"; // Default fallback
+
+                // Extract exact groups across multiline breaks
+                const captionMatch = rawResponse.match(/Caption:\s*(.*)/i);
+                const emotionMatch = rawResponse.match(/Emotion:\s*([a-zA-Z]+)/i);
+
+                if (captionMatch && captionMatch[1]) caption = captionMatch[1].trim();
+                if (emotionMatch && emotionMatch[1]) emotion = emotionMatch[1].toLowerCase().trim();
+
+                // 8. Display parsed caption
+                textOutput.innerHTML = caption.replace(/\n/g, '<br>');
+                
+                // 7. Pipe solely the emotion keyword straight into the untouched external GIF function
+                fetchGiphyGIF(emotion);
+
+            } catch (error) {
+                // 9. Basic Error Handling
+                textOutput.innerHTML = `<span class="error">❌ Failed to connect to Gemini API. Check API Key.</span>`;
+            }
+        }
+
+        // Form connection to arbitrary buttons (5)
+        document.getElementById('btn-commentary').addEventListener('click', () => handleAction('commentary'));
+        document.getElementById('btn-meme').addEventListener('click', () => handleAction('meme'));
+    </script>
+</body>
+</html>
