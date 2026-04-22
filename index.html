@@ -32,6 +32,18 @@
             </div>
             <div class="status" id="display-status">Match Status</div>
             
+            <!-- Win Probability Meter -->
+            <div id="win-probability-section" style="margin: 1.5rem 0; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 16px; border: 1px solid var(--glass-border);">
+                <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.5rem;">
+                    <span id="prob-team1">TEAM 1: 50%</span>
+                    <span id="prob-team2">50% :TEAM 2</span>
+                </div>
+                <div style="height: 10px; background: rgba(255,255,255,0.1); border-radius: 5px; overflow: hidden; display: flex;">
+                    <div id="prob-bar-team1" style="width: 50%; background: var(--accent); transition: width 1s ease;"></div>
+                    <div id="prob-bar-team2" style="width: 50%; background: var(--accent-secondary); transition: width 1s ease;"></div>
+                </div>
+            </div>
+            
             <!-- Crowd Pulse: Emotion Heatmap -->
             <div class="emotion-heatmap" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">

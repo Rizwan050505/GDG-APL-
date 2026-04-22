@@ -243,8 +243,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const prompt = `Based on this real-time IPL match: ${data.team1} vs ${data.team2}, Score: ${data.runs}/${data.wickets}, Overs: ${data.overs}, Status: ${data.status}.
     1. Analyze the current social media sentiment (X/Twitter/Reddit).
     2. Provide 5 numeric sentiment scores (0-100) for: Tension, Joy, Pressure, Disbelief, Aggression.
-    3. Generate 3 REALISTIC fan reactions (one-liners) that fans are likely shouting right now on social media.
-    Return FORMAT: scores: 80,20,90,10,60 | reactions: reaction1, reaction2, reaction3`;
+    3. Generate 3 REALISTIC fan reactions (one-liners) that fans are likely shouting right now.
+    4. Predict Win Probability (%) for Team 1 (${data.team1}) and Team 2 (${data.team2}) based on the situation.
+    Return FORMAT: scores: T,J,P,D,A | reactions: R1, R2, R3 | winprob: ${data.team1}:X%, ${data.team2}:Y%`;
 
     const result = await callGemini(prompt);
     
@@ -252,6 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const parts = result.split('|');
     const scoresPart = parts[0]?.replace('scores:', '').trim();
     const reactionsPart = parts[1]?.replace('reactions:', '').trim();
+    const winProbPart = parts[2]?.replace('winprob:', '').trim();
 
     const scores = scoresPart.split(',').map(s => parseInt(s.trim()) || 20);
 
@@ -267,9 +269,35 @@ document.addEventListener('DOMContentLoaded', () => {
       const vibe = emotions[maxIndex];
       pulseStatus.textContent = `Vibe: ${vibe}!`;
 
+      // Update Win Probability
+      updateWinProbability(data, winProbPart);
+
       // Update Live Crowd Buzz with AI generated REAL reactions
       const aiReactions = reactionsPart ? reactionsPart.split(',').map(r => r.trim()) : [];
       updateCrowdBuzz(data, vibe, aiReactions);
+    }
+  }
+
+  function updateWinProbability(data, winProbText) {
+    const probTeam1 = document.getElementById('prob-team1');
+    const probTeam2 = document.getElementById('prob-team2');
+    const barTeam1 = document.getElementById('prob-bar-team1');
+    const barTeam2 = document.getElementById('prob-bar-team2');
+
+    // Parse: "CSK: 60%, MI: 40%"
+    try {
+      if (winProbText) {
+        const parts = winProbText.split(',');
+        const t1Val = parseInt(parts[0].match(/\d+/)[0]) || 50;
+        const t2Val = 100 - t1Val;
+
+        probTeam1.textContent = `${data.team1.toUpperCase()}: ${t1Val}%`;
+        probTeam2.textContent = `${t2Val}% :${data.team2.toUpperCase()}`;
+        barTeam1.style.width = `${t1Val}%`;
+        barTeam2.style.width = `${t2Val}%`;
+      }
+    } catch (e) {
+      console.log("Error parsing win probability", e);
     }
   }
 
