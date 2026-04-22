@@ -312,19 +312,23 @@ document.addEventListener('DOMContentLoaded', () => {
   // Gemini API Configuration
   const GEMINI_API_KEY = "AIzaSyC3RwIfD3Mcw77hmNL7FX9QGkt4tk-xSPo";
   let lastRequestTime = 0;
-  const MIN_REQUEST_INTERVAL = 3000; // 3 seconds minimum between requests to avoid 429
+  const MIN_REQUEST_INTERVAL = 6000; // Increased to 6 seconds to be safer with Free Tier limits
 
   async function callGemini(prompt) {
     if (!GEMINI_API_KEY) {
       return "⚠️ Gemini API key is missing!";
     }
 
-    // Rate limiting check
+    // Rate limiting check: Wait if the last request was too recent
     const now = Date.now();
     const timeSinceLastRequest = now - lastRequestTime;
     if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
-      await new Promise(resolve => setTimeout(resolve, MIN_REQUEST_INTERVAL - timeSinceLastRequest));
+      const waitTime = MIN_REQUEST_INTERVAL - timeSinceLastRequest;
+      console.log(`Rate limiting: Waiting ${waitTime}ms before next Gemini call...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
     }
+    
+    // Update last request time AFTER the potential wait
     lastRequestTime = Date.now();
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
@@ -341,8 +345,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!response.ok) {
         const errJson = await response.json().catch(() => ({}));
         if (response.status === 429) {
-          console.warn("Gemini Quota Exceeded. Falling back to simple summary.");
-          return "🚨 Gemini API is resting (Rate Limit). Please wait a few seconds...";
+          // If 429 occurs, increase the interval dynamically for next time
+          console.warn("Gemini Quota Exceeded. Increasing wait time.");
+          return "🚨 Gemini API Limit reach ho gayi hai. Please 15-20 seconds wait karein, ye apne aap theek ho jayega.";
         }
         throw new Error(`API Error (${response.status}): ${errJson?.error?.message || response.statusText}`);
       }
@@ -355,7 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
       throw new Error("Received an unexpected data format from Google API");
     } catch (error) {
       console.error("Gemini Details:", error);
-      return `❌ ${error.message}<br><br>(If this says 'Failed to fetch', try running the app via a local server.)`;
+      return `❌ ${error.message}<br><br>(Check your internet or API key status.)`;
     }
   }
 
