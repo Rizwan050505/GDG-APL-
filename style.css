@@ -250,6 +250,44 @@ header p {
   box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
+.buzz-section {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.reactions-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  min-height: 80px;
+  align-content: flex-start;
+}
+
+.reaction-bubble {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  padding: 0.6rem 1rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+@keyframes popIn {
+  0% { transform: scale(0.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
 .actions {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));

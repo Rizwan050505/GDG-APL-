@@ -238,15 +238,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const pulseStatus = document.getElementById('emotion-status');
     const bars = document.querySelectorAll('.pulse-bar');
     
-    pulseStatus.textContent = "Processing social sentiment...";
+    pulseStatus.textContent = "Processing real-time social buzz...";
     
-    const prompt = `Based on this IPL match situation: ${data.team1} vs ${data.team2}, Score: ${data.runs}/${data.wickets}, Overs: ${data.overs}, Status: ${data.status}.
-    Analyze visual/social sentiment. Return ONLY 5 numbers (0 to 100) separated by commas representing: 
-    1. Tension, 2. Joy/Euphoria, 3. Pressure, 4. Disbelief, 5. Aggression.
-    Example output: 80,20,90,10,60`;
+    const prompt = `Based on this real-time IPL match: ${data.team1} vs ${data.team2}, Score: ${data.runs}/${data.wickets}, Overs: ${data.overs}, Status: ${data.status}.
+    1. Analyze the current social media sentiment (X/Twitter/Reddit).
+    2. Provide 5 numeric sentiment scores (0-100) for: Tension, Joy, Pressure, Disbelief, Aggression.
+    3. Generate 3 REALISTIC fan reactions (one-liners) that fans are likely shouting right now on social media.
+    Return FORMAT: scores: 80,20,90,10,60 | reactions: reaction1, reaction2, reaction3`;
 
     const result = await callGemini(prompt);
-    const scores = result.split(',').map(s => parseInt(s.trim()) || 20);
+    
+    // Parse combined response
+    const parts = result.split('|');
+    const scoresPart = parts[0]?.replace('scores:', '').trim();
+    const reactionsPart = parts[1]?.replace('reactions:', '').trim();
+
+    const scores = scoresPart.split(',').map(s => parseInt(s.trim()) || 20);
 
     if (scores.length >= 5) {
       bars.forEach((bar, index) => {
@@ -255,11 +262,45 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
 
-      // Update verbal status based on highest emotion
       const emotions = ["High Tension", "Pure Joy", "Immense Pressure", "Total Disbelief", "Aggressive Vibes"];
       const maxIndex = scores.indexOf(Math.max(...scores));
-      pulseStatus.textContent = `Vibe: ${emotions[maxIndex]}!`;
+      const vibe = emotions[maxIndex];
+      pulseStatus.textContent = `Vibe: ${vibe}!`;
+
+      // Update Live Crowd Buzz with AI generated REAL reactions
+      const aiReactions = reactionsPart ? reactionsPart.split(',').map(r => r.trim()) : [];
+      updateCrowdBuzz(data, vibe, aiReactions);
     }
+  }
+
+  function updateCrowdBuzz(data, vibe, aiReactions) {
+    const reactionsContainer = document.getElementById('reactions-container');
+    const buzzMeter = document.getElementById('buzz-meter');
+
+    const intensityMap = {
+      "High Tension": "Nail-Biting 😬",
+      "Pure Joy": "Roaring! 🦁",
+      "Immense Pressure": "Silent anticipation... 🤫",
+      "Total Disbelief": "Absolute Shock! 😱",
+      "Aggressive Vibes": "Electric Heat! 🔥"
+    };
+
+    buzzMeter.textContent = `Atmosphere: ${intensityMap[vibe] || 'Electric'}`;
+
+    // Use AI reactions if available, fallback to pool
+    const finalReactions = aiReactions.length >= 2 ? aiReactions : [
+      `${data.team1} fans going crazy! 🔥`,
+      "What a turnaround in this over! 🏏",
+      "Stadium is literally shaking! 🏟️"
+    ];
+    
+    reactionsContainer.innerHTML = '';
+    finalReactions.slice(0, 3).forEach(text => {
+      const bubble = document.createElement('div');
+      bubble.className = 'reaction-bubble';
+      bubble.textContent = text.replace(/^["']|["']$/g, ''); // Remove quotes
+      reactionsContainer.appendChild(bubble);
+    });
   }
 
   // Generate Buttons
