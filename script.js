@@ -276,13 +276,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusRaw = isManual ? inputStatus.value : scoreStatus.textContent;
 
     // Parse components
-    const [runs, wickets] = (runsRaw || '').split('/');
-    const [team1, team2] = (teamsRaw || '').split(/ vs /i);
+    const [runs, wickets] = (runsRaw || '').includes('/') ? (runsRaw || '').split('/') : [runsRaw, '0'];
+    const teamsArray = (teamsRaw || '').split(/ vs /i);
+    const team1 = teamsArray[0] || 'Team 1';
+    const team2 = teamsArray[1] || 'Team 2';
 
     // Validate inputs: ensure they exist and aren't purely whitespace
-    if (!runs?.trim() || !wickets?.trim() || !oversRaw?.trim() || !team1?.trim() || !team2?.trim()) {
-      alert("Validation Error: Please ensure you provide all fields. Teams should use 'Team1 vs Team2' format, and Score should be 'Runs/Wickets'.");
-      return null; // Return null if validation fails
+    if (!runs?.trim() || !oversRaw?.trim() || !teamsRaw?.includes(' vs ')) {
+      alert("Validation Error: Please use 'Team1 vs Team2' for Teams and 'Runs/Wickets' (e.g. 150/3) for Score.");
+      return null;
     }
 
     // Create and return the strictly formatted JavaScript object
