@@ -97,13 +97,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!match) throw new Error("No matches found in API data");
         
-        const score = match.score?.[0] || { r: 0, w: 0, o: 0 };
+        // Use the last available score (current inning)
+        const scoreList = match.score || [];
+        const score = scoreList.length > 0 ? scoreList[scoreList.length - 1] : { r: 0, w: 0, o: 0 };
 
         return {
-          teams: match.name || `${match.teams[0]} vs ${match.teams[1]}`,
-          runs: `${score.r}/${score.w}`,
-          overs: `${score.o}`,
-          status: match.status
+          teams: match.name || `${match.teams?.[0] || 'TBD'} vs ${match.teams?.[1] || 'TBD'}`,
+          runs: `${score.r || 0}/${score.w || 0}`,
+          overs: `${score.o || 0}`,
+          status: match.status || "Match in progress"
         };
       }
       throw new Error(json.reason || 'No active matches found');
@@ -135,9 +137,9 @@ document.addEventListener('DOMContentLoaded', () => {
       clearInterval(autoRefreshInterval);
       autoRefreshInterval = null;
     }
-    // Automatically start refresh if in Auto mode (even if toggle element doesn't exist or is checked)
+    // Automatically start refresh if in Auto mode
     if (mode === 'Auto') {
-      const refreshTime = 30000; // 30 seconds
+      const refreshTime = 60000; // Increased to 60 seconds (1 minute) to avoid hitting Gemini API limits
       console.log(`Auto-refresh started: ${refreshTime}ms`);
       autoRefreshInterval = setInterval(async () => {
         console.log("Fetching live update...");
@@ -223,14 +225,10 @@ document.addEventListener('DOMContentLoaded', () => {
     scoreOvers.textContent = data.overs;
     scoreStatus.textContent = data.status;
 
-    // Automatically trigger commentary if score changes or it's the first load
+    // ONLY trigger commentary manually or if explicitly requested to save API quota
     if (mode === 'Auto' && oldScore !== data.runs) {
-      console.log("Score updated! Generating automatic commentary and Crowd Pulse...");
-      const matchData = getMatchData();
-      if (matchData) {
-        generateContent('commentary', matchData);
-        updateCrowdPulse(matchData);
-      }
+      console.log("Score updated! UI refreshed. (AI Commentary skipped to save API limit - Click Manual button to generate)");
+      // updateCrowdPulse(matchData); // Commented out to save quota
     }
   }
 
@@ -266,13 +264,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const emotions = ["High Tension", "Pure Joy", "Immense Pressure", "Total Disbelief", "Aggressive Vibes"];
       const maxIndex = scores.indexOf(Math.max(...scores));
-      const vibe = emotions[maxIndex];
+      const vibe = emotions[maxIndex] || "Electric";
       pulseStatus.textContent = `Vibe: ${vibe}!`;
 
       // Update Win Probability
       updateWinProbability(data, winProbPart);
 
-      // Update Live Crowd Buzz with AI generated REAL reactions
+      // Update Live Crowd Buzz
       const aiReactions = reactionsPart ? reactionsPart.split(',').map(r => r.trim()) : [];
       updateCrowdBuzz(data, vibe, aiReactions);
     }
@@ -347,23 +345,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // Parse components
     const [runs, wickets] = (runsRaw || '').includes('/') ? (runsRaw || '').split('/') : [runsRaw, '0'];
     const teamsArray = (teamsRaw || '').split(/ vs /i);
-    const team1 = teamsArray[0] || 'Team 1';
-    const team2 = teamsArray[1] || 'Team 2';
+    const team1 = (teamsArray[0] || 'Team 1').trim();
+    const team2 = (teamsArray[1] || 'Team 2').trim();
 
-    // Validate inputs: ensure they exist and aren't purely whitespace
-    if (!runs?.trim() || !oversRaw?.trim() || !teamsRaw?.includes(' vs ')) {
+    // Validate inputs: ONLY alert if in Manual mode and data is missing
+    if (isManual && (!runs?.trim() || !oversRaw?.trim() || !teamsRaw?.includes(' vs '))) {
       alert("Validation Error: Please use 'Team1 vs Team2' for Teams and 'Runs/Wickets' (e.g. 150/3) for Score.");
       return null;
     }
 
     // Create and return the strictly formatted JavaScript object
     const matchData = {
-      team1: team1.trim(),
-      team2: team2.trim(),
-      runs: runs.trim(),
-      wickets: wickets.trim(),
-      overs: oversRaw.trim(),
-      status: statusRaw.trim()
+      team1: team1,
+      team2: team2,
+      runs: runs?.trim() || '0',
+      wickets: wickets?.trim() || '0',
+      overs: oversRaw?.trim() || '0',
+      status: statusRaw?.trim() || 'Match in progress'
     };
 
     console.log("Extracted matchData:", matchData);
@@ -381,25 +379,24 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Gemini API Configuration
-  const GEMINI_API_KEY = "AIzaSyC3RwIfD3Mcw77hmNL7FX9QGkt4tk-xSPo";
+  const GEMINI_API_KEY = "AIzaSyAvxJVcFZ_b61MBRRmaww0YYEs9W5pTjHo";
   let lastRequestTime = 0;
-  const MIN_REQUEST_INTERVAL = 6000; // Increased to 6 seconds to be safer with Free Tier limits
+  const MIN_REQUEST_INTERVAL = 15000; // Increased to 15 seconds for Free Tier stability
 
   async function callGemini(prompt) {
     if (!GEMINI_API_KEY) {
       return "⚠️ Gemini API key is missing!";
     }
 
-    // Rate limiting check: Wait if the last request was too recent
+    // Rate limiting check
     const now = Date.now();
     const timeSinceLastRequest = now - lastRequestTime;
     if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
       const waitTime = MIN_REQUEST_INTERVAL - timeSinceLastRequest;
-      console.log(`Rate limiting: Waiting ${waitTime}ms before next Gemini call...`);
+      console.log(`Rate limiting: Waiting ${Math.ceil(waitTime/1000)}s for API cooling...`);
       await new Promise(resolve => setTimeout(resolve, waitTime));
     }
     
-    // Update last request time AFTER the potential wait
     lastRequestTime = Date.now();
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
@@ -416,9 +413,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!response.ok) {
         const errJson = await response.json().catch(() => ({}));
         if (response.status === 429) {
-          // If 429 occurs, increase the interval dynamically for next time
-          console.warn("Gemini Quota Exceeded. Increasing wait time.");
-          return "🚨 Gemini API Limit reach ho gayi hai. Please 15-20 seconds wait karein, ye apne aap theek ho jayega.";
+          console.warn("Gemini Quota Exceeded.");
+          return "🚨 Gemini API Limit reach ho gayi hai. Ye Free Tier hai, isliye zyada requests allow nahi hain. Please thoda wait karein (15s), ye automatic theek ho jayega.";
         }
         throw new Error(`API Error (${response.status}): ${errJson?.error?.message || response.statusText}`);
       }
